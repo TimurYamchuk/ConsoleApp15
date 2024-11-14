@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -24,10 +24,10 @@ class Program
     {
         List<Department> departments = new List<Department>()
         {
-            new Department(){ Id = 1, Country = "Ukraine", City = "Odesa"},
+            new Department(){ Id = 1, Country = "Ukraine", City = "Lviv" },
             new Department(){ Id = 2, Country = "Ukraine", City = "Kyiv" },
             new Department(){ Id = 3, Country = "France", City = "Paris" },
-            new Department(){ Id = 4, Country = "Ukraine", City = "Lviv"}
+            new Department(){ Id = 4, Country = "Ukraine", City = "Odesa" }
         };
 
         List<Employee> employees = new List<Employee>()
@@ -41,41 +41,55 @@ class Program
             new Employee() { Id = 7, FirstName = "Nikita", LastName = "Krotov", Age = 27, DepId = 4 }
         };
 
-        // 1. Упорядочить имена и фамилии сотрудников по алфавиту, которые проживают в Украине
-        var sortedEmployeesInUkraine = (from emp in employees
-                                        join dep in departments on emp.DepId equals dep.Id
-                                        where dep.Country.Trim() == "Ukraine"
-                                        orderby emp.FirstName, emp.LastName
-                                        select emp).ToList();
+        // 1) Выбрать имена и фамилии сотрудников, работающих в Украине, но не в Одессе
+        var employeesInUkraineNotOdesa = employees
+            .Join(departments, emp => emp.DepId, dep => dep.Id, (emp, dep) => new { emp, dep })
+            .Where(x => x.dep.Country.Trim() == "Ukraine" && x.dep.City != "Odesa")
+            .Select(x => new { x.emp.FirstName, x.emp.LastName })
+            .ToList();
 
-        Console.WriteLine("Сотрудники из Украины (отсортированы по имени и фамилии):");
-        foreach (var emp in sortedEmployeesInUkraine)
+        Console.WriteLine("Сотрудники, работающие в Украине, но не в Одессе:");
+        foreach (var emp in employeesInUkraineNotOdesa)
         {
             Console.WriteLine($"{emp.FirstName} {emp.LastName}");
         }
 
-        // 2. Отсортировать сотрудников по возрастам по убыванию
-        var sortedByAgeDesc = employees
-            .OrderByDescending(emp => emp.Age)
-            .Select(emp => new { emp.Id, emp.FirstName, emp.LastName, emp.Age })
+        // 2) Вывести список стран без повторений
+        var uniqueCountries = departments
+            .Select(dep => dep.Country.Trim())
+            .Distinct()
             .ToList();
 
-        Console.WriteLine("\nСотрудники по возрасту (по убыванию):");
-        foreach (var emp in sortedByAgeDesc)
+        Console.WriteLine("\nСписок стран без повторений:");
+        foreach (var country in uniqueCountries)
         {
-            Console.WriteLine($"ID: {emp.Id}, Имя: {emp.FirstName}, Фамилия: {emp.LastName}, Возраст: {emp.Age}");
+            Console.WriteLine(country);
         }
 
-        // 3. Сгруппировать сотрудников по возрасту и подсчитать количество сотрудников в каждой группе
-        var groupedByAge = employees
-            .GroupBy(emp => emp.Age)
-            .Select(group => new { Age = group.Key, Count = group.Count() })
+        // 3) Выбрать 3-x первых сотрудников, возраст которых превышает 25 лет
+        var firstThreeAbove25 = employees
+            .Where(emp => emp.Age > 25)
+            .Take(3)
+            .Select(emp => new { emp.FirstName, emp.LastName, emp.Age })
             .ToList();
 
-        Console.WriteLine("\nГруппировка сотрудников по возрасту:");
-        foreach (var group in groupedByAge)
+        Console.WriteLine("\nТри первых сотрудника, чей возраст превышает 25 лет:");
+        foreach (var emp in firstThreeAbove25)
         {
-            Console.WriteLine($"Возраст: {group.Age}, Количество сотрудников: {group.Count}");
+            Console.WriteLine($"{emp.FirstName} {emp.LastName}, Возраст: {emp.Age}");
+        }
+
+        // 4) Выбрать имена, фамилии и возраст студентов из Киева, возраст которых превышает 23 года
+        var employeesInKyivAbove23 = employees
+            .Join(departments, emp => emp.DepId, dep => dep.Id, (emp, dep) => new { emp, dep })
+            .Where(x => x.dep.City == "Kyiv" && x.emp.Age > 23)
+            .Select(x => new { x.emp.FirstName, x.emp.LastName, x.emp.Age })
+            .ToList();
+
+        Console.WriteLine("\nСотрудники из Киева, чей возраст превышает 23 года:");
+        foreach (var emp in employeesInKyivAbove23)
+        {
+            Console.WriteLine($"{emp.FirstName} {emp.LastName}, Возраст: {emp.Age}");
         }
     }
 }
